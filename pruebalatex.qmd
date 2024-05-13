@@ -1,0 +1,93 @@
+---
+title: "PruebaLatex"
+format: pdf
+editor: visual
+---
+
+## Ejercicio 1
+
+Lectura de los datos
+
+```{r}
+library(readxl)
+dt <- read_excel("~/ejercicio1seminario.xlsx",col_names = TRUE, col_types = "numeric")
+dt <- as.data.frame(dt)
+rownames(dt) <- paste0("Empresa ", 1:nrow(dt))
+head(dt)
+```
+
+Prueba de normalidad
+
+```{r}
+library(MVN)
+normalidad <- mvn(dt, mvnTest = "mardia")
+normalidad
+```
+
+Los datos presentan normalidad, así que se procede con el método de clustering.
+
+Primero se tratara de definir cuantos clusters son los ideales
+
+```{r}
+#install.packages("NbClust")
+library(NbClust)
+res.nbclust <- NbClust(dt, distance = "euclidean",
+                       min.nc = 2, max.nc = 6, 
+                       method = "complete", index ="all")
+```
+
+Nuestro primer metodo inidca que lo adecuado serian 4 clusters.
+
+```{r}
+library(clValid)
+validclus  <- clValid(dt, nClust = 2:6, 
+                      clMethods = c("hierarchical","kmeans","diana","fanny","pam","clara","agnes"),
+                      validation = "internal")
+summary(validclus)
+```
+
+con el segundo método, se concluye que el numero de clusters a escoger serán 4.
+
+Se realiza el dendograma para visualizar que empresas están en cada cluster.
+
+```{r}
+dist      <- dist(dt,method = "euclidean")
+modelo    <- hclust(dist, method = "complete")
+
+library(factoextra)
+fviz_dend(modelo, cex = 0.5, k=4, 
+          rect = TRUE,  
+          k_colors = "jco",
+          rect_border = "jco", 
+          rect_fill = TRUE,
+          horiz = TRUE,
+          ggtheme = theme_bw())
+```
+
+El dendograma muestra los 4 clusters que se forman y que empresas las conforman.
+
+Análisis de las medias de los clusters
+
+```{r}
+clust <- kmeans(dt, centers = 4)
+cluster_membership <- clust$cluster
+dt_clustered <- cbind(dt, cluster = cluster_membership)
+summary_by_cluster <- aggregate(. ~ cluster, data = dt_clustered, FUN = mean)
+print(summary_by_cluster)
+```
+
+Al calcular las medias de cada variable para cada cluster, podemos identificar patrones y diferencias entre los grupos. El Cluster 4 destaca por tener valores medios superiores en general, lo que sugiere que las empresas en este grupo exhiben características más elevadas en comparación con los otros clusters.
+
+Identificación de las mejores empresas
+
+```{r}
+suma_medias <- rowSums(summary_by_cluster[, -1])
+
+suma_medias_df <- data.frame(cluster = summary_by_cluster$cluster, Suma_de_Medias = suma_medias)
+
+print(suma_medias_df)
+```
+
+Conclusión: El Cluster 4 se distingue por sus valores medios superiores en general, sugiriendo que este grupo de observaciones representa empresas con características más elevadas en comparación con los otros clusters.
+
+Las empresas pertenecientes al Cluster 4 son las que destacan por sus altos niveles en múltiples dimensiones, como innovación, comunicación, eficiencia, responsabilidad, atención al cliente y compromiso comunitario.
