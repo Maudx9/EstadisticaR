@@ -91,3 +91,142 @@ print(suma_medias_df)
 Conclusión: El Cluster 4 se distingue por sus valores medios superiores en general, sugiriendo que este grupo de observaciones representa empresas con características más elevadas en comparación con los otros clusters.
 
 Las empresas pertenecientes al Cluster 4 son las que destacan por sus altos niveles en múltiples dimensiones, como innovación, comunicación, eficiencia, responsabilidad, atención al cliente y compromiso comunitario.
+
+## Ejercicio 2
+
+exploramos la tabla y dimensiones del conjunto de datos.
+
+```{r}
+#install.packages("lda")
+#install.packages("rattle.data")
+library(lda)
+library(MASS)
+library(car)
+library(rattle)
+library(ggplot2)
+
+view(wine) 
+dim(wine)
+```
+
+se Carga la librería MVN para hacer una prueba de normalidad
+
+```{r}
+library(MVN)
+wine_subset <- subset(wine, select = -c(Type))
+result <- mvn(data = wine_subset, mvnTest = "royston")
+result$multivariateNormality
+```
+
+No es restrictivo el metodo con que las variables sigan una distribucion normal multivariante
+
+Matriz de datos y variable de respuesta
+
+```{r}
+Z <- as.data.frame(wine)
+head(Z)
+
+Y <- Z[,1]
+head(Y)
+
+X <- Z[,2:14]
+head(X)
+```
+
+LDA funcion discriminante para observar las clasificaciones
+
+```{r}
+lda.wine <- lda(Y~., data = X, CV=TRUE)
+
+lda.wine$class 
+```
+
+ERRORES DEL METODO:
+
+```{r}
+table.lda <- table(Y, lda.wine$class)
+table.lda
+```
+
+Se observa en la tabla que para el 1 y el 3 hay 1 variable mal agrupada por cada uno.
+
+PROPORCION
+
+```{r}
+error.lda <- 178 - sum(Y==lda.wine$class)
+error.lda/178
+```
+
+El metodo tiene un 1% de error lo cual es muy aceptable para trabajarlo.
+
+Como la matriz es grande, se imprimira por partes.
+
+```{r}
+#la matriz con los primeros 7
+col.lda.wine <- c("blue", "green")[1*(Y==lda.wine$class)+1]
+pairs(X[1:7], main = "Correctos (verde) e Incorrectos (azul) Clasificacion de vinos por Discriminante",
+      pch=19, col=col.lda.wine)
+
+```
+
+```{r}
+#la matriz con los siguientes 6
+col.lda.wine <- c("blue", "green")[1*(Y==lda.wine$class)+1]
+pairs(X[8:13], main = "Correctos (rojo) e Incorrectos (negros) Clasificacion de vinos por Discriminante",
+      pch=19, col=col.lda.wine)
+```
+
+PROBABILIDADES DE PERTENENCIA
+
+```{r}
+head(lda.wine$posterior)
+```
+
+Muestra la probabilidad que pertenezcan a cada tipo.
+
+Graficamente
+
+```{r}
+plot(1:178, lda.wine$posterior[,1], main="Probabilidades grupo1 (azul), grupo2 (verde) y
+     grupo 3(anaranjado)", pch=20, col="darkblue", xlab="Observaciòn", ylab="Probabilidad")
+
+
+```
+
+grupo 1 en azul; las que esten en 1 pertenecen al grupo 1.
+
+```{r}
+#este amarillo
+plot(1:178, lda.wine$posterior[,1], main="Probabilidades grupo1 (azul), grupo2 (verde) y
+     grupo 3(anaranjado)", pch=20, col="darkblue", xlab="Observaciòn", ylab="Probabilidad")
+
+points(1:178, lda.wine$posterior[,2], pch=20, col="yellow")
+
+
+```
+
+```{r}
+#verde
+plot(1:178, lda.wine$posterior[,1], main="Probabilidades grupo1 (azul), grupo2 (verde) y
+     grupo 3(anaranjado)", pch=20, col="darkblue", xlab="Observaciòn", ylab="Probabilidad")
+
+points(1:178, lda.wine$posterior[,2], pch=20, col="yellow")
+
+
+points(1:178, lda.wine$posterior[,3], pch=20, col="green")
+```
+
+Agrupando las funciones:
+
+```{r}
+lda.winee <- lda(Y~., data = X)
+
+lda.winee.values <- predict(lda.winee)
+
+plot(lda.winee.values$x[,1],lda.winee.values$x[,2]) 
+text(lda.winee.values$x[,1],lda.winee.values$x[,2],Y,cex=0.7,pos=4,col="red")
+#el grafico de las funciones de prediccion 
+
+```
+
+Conclusion El propósito del análisis discriminante lineal (LDA) en este ejemplo es encontrar las combinaciones lineales de las variables originales (las 13 concentraciones químicas) que proporcionan la mejor separación posible entre los grupos (variedades de vino) en nuestro conjunto de datos.
